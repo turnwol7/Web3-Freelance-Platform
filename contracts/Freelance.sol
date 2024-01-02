@@ -2,12 +2,16 @@
 
 pragma solidity 0.8.19;
 
+import "./Payment.sol";
+
 //main contract for the freelance project.
 //users can create services, view available services and hire a freelancer
 
 contract FreelancePlatform {
     //declare public owner 
     address public owner;
+    Payment public paymentContract;
+
 
     //service is on or off
     enum ServiceStatus {on, off}
@@ -64,8 +68,10 @@ contract FreelancePlatform {
     }
 
     //constructor to declare me as owner on deploy
+    //also the payment object
     constructor() {
         owner = msg.sender;
+        paymentContract = new Payment();
     }
 
     //functions for our Freelance contract
@@ -105,15 +111,24 @@ contract FreelancePlatform {
             emit JobStarted(jobId, msg.sender);
         }
 
-        //completeJob
-        function completeJob(uint256 jobId) external onlyBuyer(jobId) {
-            //additional logic needed
-        }
+       function completeJob(uint256 jobId) external onlyBuyer(jobId) {
+            // Additional logic for job completion (e.g., validation of work)
 
-        //cancelJob
-        function cancelJob(uint256 jobId) external onlyBuyer(jobId) {
-            //additional logic needed
+            // Release funds from escrow to the service provider
+            address payable provider = payable(serviceToProvider[jobId]);
+            paymentContract.releaseFunds(jobId, provider);
+
+            emit JobCompleted(jobId, msg.sender);
+    }
+
+         function cancelJob(uint256 jobId) external onlyBuyer(jobId) {
+            // Additional logic for canceling the job
+
+            // Refund funds from escrow to the buyer
+            paymentContract.releaseFunds(jobId, payable(msg.sender));
+
+            // Additional logic for canceling the job
         }
-        
-        //add more logic functions
+            
+            //add more logic functions
 }
